@@ -1,4 +1,3 @@
-
 package back2u;
 
 import java.sql.*; // for databade jdbc
@@ -43,5 +42,3 @@ public class Conn {
         }
     }
 }
-
-
