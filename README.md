@@ -1,810 +1,321 @@
-# Back2U
+# 🔎 Back2U — Smart Campus Lost & Found System
 
-### There’s Always a Way Back.
+<p align="center">
+  <strong>There’s Always a Way Back.</strong>
+  <br />
+  A Java Swing and MySQL application that helps campus communities reconnect people with their lost belongings.
+</p>
 
-> **A Smart Campus Lost & Found System**
-
-Back2U is a **Java Swing-based Smart Campus Lost & Found System** designed to help students report lost and found belongings, identify potential matches, verify ownership, and complete a secure handover.
-
-Instead of depending on scattered WhatsApp groups, class groups, notice boards, or word of mouth, Back2U provides a centralized system that manages the complete journey from **reporting an item to returning it to its rightful owner**.
-
----
-
-## 📌 Table of Contents
-
-- [Problem Statement](#-problem-statement)
-- [Proposed Solution](#-proposed-solution)
-- [Objectives](#-objectives)
-- [Key Features](#-key-features)
-- [System Workflow](#-system-workflow)
-- [Smart Matching](#-smart-matching)
-- [Ownership Verification](#-ownership-verification)
-- [Notifications](#-notifications)
-- [Secure Handover](#-secure-handover)
-- [Admin Module](#-admin-module)
-- [User Roles](#-user-roles)
-- [System Architecture](#-system-architecture)
-- [Database](#-database)
-- [OOP Concepts](#-oop-concepts)
-- [Design Patterns](#-design-patterns)
-- [Technology Stack](#-technology-stack)
-- [Project Structure](#-project-structure)
-- [Item Lifecycle](#-item-lifecycle)
-- [Security and Access Control](#-security-and-access-control)
-- [Testing](#-testing)
-- [Future Scope](#-future-scope)
-- [Team](#-team)
-- [Project Status](#-project-status)
+<p align="center">
+  <img src="https://img.shields.io/badge/Java-Swing-orange?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java Swing" />
+  <img src="https://img.shields.io/badge/Database-MySQL-blue?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL" />
+  <img src="https://img.shields.io/badge/Connectivity-JDBC-green?style=for-the-badge" alt="JDBC" />
+  <img src="https://img.shields.io/badge/IDE-NetBeans-lightgrey?style=for-the-badge&logo=apache-netbeans-ide&logoColor=white" alt="NetBeans" />
+</p>
 
 ---
 
-## 📌 Problem Statement
+## 📌 About the Project
 
-Students frequently lose personal belongings such as:
+**Back2U** is a campus-focused lost-and-found management system designed to make reporting, discovering, matching, and recovering lost belongings easier.
 
-- ID cards
-- Wallets
-- Phones
-- Earphones
-- Books
-- Laptops
-- Other personal items
+Instead of depending entirely on informal announcements and scattered messages, users can report lost or found items, review possible matches, receive notifications, and arrange handovers.
 
-On a college campus, information about found items is often shared through different WhatsApp groups, class groups, notice boards, or word of mouth.
+Back2U v2 also introduces an **advertisement trust and verification workflow**. Users can report suspicious found-item advertisements and rate approved advertisements. Trust scores help prioritize credible listings, while administrators can review advertisements that require attention.
 
-This creates several problems:
+## ✨ Features
 
-- No centralized Lost & Found system
-- Difficult to search through multiple reports
-- Lost and found reports may not reach the right person
-- Manual comparison of reports is time-consuming
-- Similar items can lead to incorrect ownership claims
-- No structured ownership verification
-- No standardized handover process
-- Difficult to track an item's complete lifecycle
+### 👤 User Management
+- User registration and login.
+- User-specific dashboards.
+- Separate access paths for regular users and administrative functions.
 
-Back2U addresses these problems through a centralized and structured campus Lost & Found system.
+### 📦 Lost & Found Reporting
+- Submit lost-item reports.
+- Submit found-item advertisements.
+- Record item names, categories, descriptions, dates, times, and locations.
+- Store lost and found reports in a shared `items` table, distinguished by report type.
+- Record additional unique details for lost-item ownership verification.
 
----
+### 🔍 Possible Matches
+- Compare lost and found reports to identify potential matches.
+- Display match information to help users evaluate possible matches.
+- Track match responses and status.
+- Generate notifications for relevant matches.
 
-## 💡 Proposed Solution
+### 🔔 Match Notifications
+- View possible matches associated with a user's reports.
+- Review match details.
+- Respond to matching requests where permitted.
+- Refresh notification information.
 
-Back2U provides a centralized platform where students can:
+### ⭐ Advertisement Trust & Verification
+- Calculate an initial trust score for a submitted advertisement.
+- Assign an advertisement review status based on the configured review threshold.
+- Allow users to browse approved found-item advertisements.
+- Display advertisement trust scores and available rating information.
+- Allow eligible users to rate approved advertisements.
+- Prevent users from rating their own advertisements.
+- Allow users to report suspicious advertisements.
+- Update trust scores using the initial score and user-rating information.
+- Move advertisements below the configured trust threshold into pending review when applicable.
 
-1. Report lost items.
-2. Report found items.
-3. Automatically compare lost and found reports.
-4. Calculate a weighted match score.
-5. Notify potential owners when a match is found.
-6. Verify ownership using private identifying details.
-7. Arrange a structured handover.
-8. Use a temporary handover PIN to confirm the exchange.
-9. Track the item until it is successfully returned.
+**Current review rule:** The configured trust-score threshold is **50**. Advertisements with an initial score below 50 are submitted for review; advertisements scoring 50 or above can be approved automatically, subject to the application's implemented workflow.
 
-The system also provides an **Admin module** for handling exceptional cases such as failed verification, multiple claims, disputes, and suspicious reports.
+The trust score is an indicator for review and discovery, not a guarantee that an advertisement is genuine.
 
----
+### 🛡️ Administrator Review
+- View advertisements awaiting review.
+- Inspect advertisement information and suspicious-ad reports.
+- Approve or reject eligible advertisements.
+- Review reports submitted by users.
+- Apply moderation decisions without unnecessarily changing existing match and handover records.
 
-## 🎯 Objectives
-
-Back2U aims to:
-
-- Centralize campus Lost & Found activities.
-- Reduce the time required to locate lost belongings.
-- Connect lost and found reports using multiple matching factors.
-- Notify potential owners about relevant matches.
-- Reduce false ownership claims.
-- Provide a structured ownership verification process.
-- Provide a secure handover mechanism.
-- Track the complete lifecycle of an item.
-- Provide administrative supervision for exceptional cases.
-
----
-
-## ✨ Key Features
-
-### 🔐 User Authentication
-
-- Student registration
-- Student login
-- Admin login
-- Role-based access control
-- Student and Admin dashboards
-
-### 📦 Report Lost Item
-
-Students can report a lost item by providing:
-
-- Item category
-- Item name
-- Description
-- Location
-- Date
-- Approximate time
-- Private identifying details
-
-### 🔎 Report Found Item
-
-Students who find an item can report:
-
-- Item category
-- Item name
-- Description
-- Found location
-- Date
-- Approximate time
-- Additional notes
-
-### 🧠 Smart Matching
-
-Back2U compares lost and found reports using four factors:
-
-| Matching Factor | Weight |
-|---|---:|
-| Description | **35%** |
-| Location | **30%** |
-| Time | **20%** |
-| Category | **15%** |
-| **Total** | **100%** |
+### 🤝 Item Recovery & Handover
+- Maintain match information between lost and found reports.
+- Arrange a handover location, date, time, and instructions.
+- Use a handover PIN as part of the recovery workflow.
+- Track handover status and completed recoveries.
 
 ---
 
-## 📐 Matching Formula
-
-$$
-Match\ Score =
-(D \times 0.35)
-+
-(L \times 0.30)
-+
-(T \times 0.20)
-+
-(C \times 0.15)
-$$
-
-Where:
-
-- `D` = Description similarity score
-- `L` = Location similarity score
-- `T` = Time similarity score
-- `C` = Category similarity score
-
-Each individual factor is normalized between `0` and `1`.
-
-### Example
-
-```text
-Description = 0.90
-Location    = 1.00
-Time        = 0.90
-Category    = 1.00
-
-Match Score
-= (0.90 × 0.35)
-+ (1.00 × 0.30)
-+ (0.90 × 0.20)
-+ (1.00 × 0.15)
-
-= 0.945
-
-= 94.5%
-```
-
-> **Important:** The match score indicates similarity between the lost and found reports. It does **not** by itself prove ownership.
-
----
-
-## 🔔 Notifications
-
-When a sufficiently strong potential match is identified, Back2U generates an **in-app notification** for the reported owner.
-
-Example:
-
-> **Potential Match Found**  
-> Your black wireless earbuds may have been found.
-
-A notification can contain:
-
-- Notification ID
-- Recipient
-- Title
-- Message
-- Read/unread status
-- Timestamp
-
----
-
-## 🔐 Ownership Verification
-
-Back2U separates **matching** from **ownership verification**.
-
-A high match score only indicates that the lost and found reports appear similar.
-
-The owner provides private identifying details while reporting the lost item.
-
-Example:
-
-```text
-• Small scratch on the charging case
-• Blue sticker inside the case
-• Small dent on the left earbud
-```
-
-When a potential match is found:
-
-```text
-Potential Match
-       ↓
-Finder receives relevant private details
-       ↓
-Finder physically checks the item
-       ↓
-       ┌──────────────────┐
-       │                  │
-DETAILS MATCH      DETAILS DON'T MATCH
-       │                  │
-       ↓                  ↓
-   VERIFIED             REJECTED
-```
-
----
-
-## 🔑 Secure Handover
-
-After successful ownership verification:
-
-1. Owner and finder arrange a handover location.
-2. The system generates a temporary 6-digit PIN.
-3. The owner receives the PIN.
-4. The physical item is handed over.
-5. The owner provides the PIN after receiving the item.
-6. The finder enters the PIN.
-7. The system validates the PIN.
-8. If valid, the item is marked as `RETURNED`.
-
-```text
-VERIFIED
-   ↓
-ARRANGE HANDOVER
-   ↓
-GENERATE PIN
-   ↓
-PHYSICAL HANDOVER
-   ↓
-ENTER PIN
-   ↓
-VALIDATE PIN
-   ↓
-RETURNED
-```
-
----
-
-## 👨‍💼 Admin Module
-
-The Admin module is primarily used for **supervision and exception handling**.
-
-Administrators can:
-
-- Manage users
-- Monitor lost reports
-- Monitor found reports
-- View potential matches
-- Review failed verification
-- Review multiple claims
-- Handle disputes
-- Review suspicious cases
-- Monitor handovers
-- View system statistics
-
----
-
-## 👥 User Roles
-
-### Student
-
-A student can:
-
-- Create an account
-- Log in
-- Report lost items
-- Report found items
-- View their reports
-- View potential matches
-- Receive notifications
-- Participate in ownership verification
-- Arrange handover
-- Complete handover
-
-### Admin
-
-An administrator has additional permissions to:
-
-- Manage users
-- Monitor reports
-- Review problematic cases
-- Handle disputes
-- Review failed verification
-- Monitor handovers
-- View analytics
-
----
-
-## 🏗️ System Architecture
-
-Back2U follows a layered architecture.
-
-```text
-┌─────────────────────────────┐
-│        Java Swing UI        │
-│ Login / Dashboard / Forms   │
-└──────────────┬──────────────┘
-               ↓
-┌─────────────────────────────┐
-│    Service / Business       │
-│ Matching / Verification /   │
-│ Notification / Handover     │
-└──────────────┬──────────────┘
-               ↓
-┌─────────────────────────────┐
-│            DAO              │
-│ UserDAO / LostItemDAO /     │
-│ FoundItemDAO / etc.         │
-└──────────────┬──────────────┘
-               ↓
-┌─────────────────────────────┐
-│            JDBC             │
-└──────────────┬──────────────┘
-               ↓
-┌─────────────────────────────┐
-│           MySQL             │
-└─────────────────────────────┘
-```
-
----
-
-## 🧩 OOP Concepts
-
-### Encapsulation
-
-```java
-private String description;
-
-public String getDescription() {
-    return description;
-}
-
-public void setDescription(String description) {
-    this.description = description;
-}
-```
-
-### Inheritance
-
-```text
-        User
-       /    \
-  Student   Admin
-```
-
-```java
-class Student extends User {
-}
-
-class Admin extends User {
-}
-```
-
-### Abstraction
-
-The matching system uses a common `Matcher` abstraction:
-
-```java
-interface Matcher {
-    double calculate(LostItem lost, FoundItem found);
-}
-```
-
-### Interface
-
-`Matcher` defines the common contract for matching strategies.
-
-### Polymorphism
-
-```java
-Matcher matcher = new DescriptionMatcher();
-```
-
-The same `Matcher` reference can refer to different matcher implementations.
-
-### Method Overriding
-
-Each concrete matcher provides its own implementation of `calculate()`.
-
-### Method Overloading
-
-Methods with the same name can be defined with different parameter lists where required.
-
----
-
-## 🎨 Design Patterns
-
-### Strategy Pattern
-
-Used in the matching system.
-
-```text
-                  Matcher
-                     │
-       ┌─────────────┼─────────────┐
-       ↓             ↓             ↓
-Description      Location         Time
-Matcher          Matcher          Matcher
-                     +
-                CategoryMatcher
-```
-
-Each matcher represents a different matching strategy.
-
-### DAO Pattern
-
-Used to separate database operations from business logic.
-
-```text
-Swing UI
-   ↓
-Service
-   ↓
-DAO
-   ↓
-JDBC
-   ↓
-MySQL
-```
-
-Examples:
-
-```text
-UserDAO
-LostItemDAO
-FoundItemDAO
-NotificationDAO
-HandoverDAO
-```
-
-### Singleton Pattern
-
-A Singleton can be used for services that should have a single shared instance throughout the application, such as `NotificationService`.
-
-> **Only patterns that are actually implemented in the final codebase should be claimed as implemented design patterns.**
-
----
-
-## 🔒 Security and Access Control
-
-Back2U separates **authentication** from **authorization**.
-
-### Authentication
-
-Determines who the user is.
-
-```text
-Email + Password
-       ↓
-Authentication
-```
-
-### Authorization
-
-Determines what the user is allowed to do.
-
-```text
-              Logged-in User
-                    ↓
-                Check Role
-                 /       \
-                ↓         ↓
-            Student      Admin
-                ↓         ↓
-         Student UI    Admin UI
-```
-
-Admin operations should be protected by authorization checks in the application/service layer, not only by hiding buttons in the GUI.
-
----
-
-## 🕵️ Privacy Model
-
-Back2U distinguishes between **public report information** and **private verification information**.
-
-### Public Information
-
-Used for matching:
-
-- Category
-- Item name
-- Description
-- Location
-- Date
-- Time
-
-### Private Information
-
-Used for ownership verification:
-
-- Unique scratches
-- Stickers
-- Engravings
-- Dents
-- Other private physical characteristics
-
----
-
-## 🗄️ Database
-
-Back2U uses **MySQL** for persistent data storage.
-
-### Core Tables
-
-```text
-accountdetails
-login
-lost_item
-found_item
-Handover_pin
-```
-
-Additional tables such as `match`, `verification`, and `notification` can be introduced depending on the final implementation.
-
-> The exact final database schema should match the actual SQL files in the project.
-
----
-
-## 🔄 Item Lifecycle
-
-```text
-REPORTED
-    ↓
-SEARCHING
-    ↓
-MATCHED
-    ↓
-VERIFICATION
-    ↓
-VERIFIED
-    ↓
-HANDOVER
-    ↓
-RETURNED
-    ↓
-CLOSED
-```
-
-If verification fails:
-
-```text
-VERIFICATION
-      ↓
-   REJECTED
-      ↓
-Retry / Admin Review
-```
-
----
-
-## 🔎 Matching vs Verification vs Handover
-
-| Stage | Purpose |
-|---|---|
-| **Matching** | Determines whether a lost and found report may refer to the same item |
-| **Verification** | Confirms ownership by comparing private identifying details with the physical item |
-| **Handover** | Confirms that the verified item was actually returned |
-
-In simple terms:
-
-```text
-MATCHING
-"Could these be the same item?"
-
-        ↓
-
-VERIFICATION
-"Does the physical item match the owner's private details?"
-
-        ↓
-
-HANDOVER
-"Was the verified item actually returned?"
-```
-
----
-
-## 🧪 Testing
-
-Back2U should be tested using both normal and exceptional workflows.
-
-### Successful Flow
-
-```text
-Student 1 reports lost item
-          ↓
-Student 2 reports found item
-          ↓
-Matching engine calculates score
-          ↓
-Potential match generated
-          ↓
-Owner notified
-          ↓
-Finder verifies physical item
-          ↓
-Ownership verified
-          ↓
-Handover arranged
-          ↓
-PIN validated
-          ↓
-Item marked RETURNED
-```
-
-### Failed Verification
-
-```text
-Match Found
-    ↓
-Verification
-    ↓
-Details Don't Match
-    ↓
-Rejected
-    ↓
-Retry / Admin Review
-```
-
-### Invalid Handover PIN
-
-```text
-Handover
-   ↓
-Invalid PIN
-   ↓
-Item remains in HANDOVER state
-```
-
-### Expired PIN
-
-```text
-Handover
-   ↓
-PIN Expired
-   ↓
-Generate New PIN
-```
-
-### Unauthorized Access
-
-```text
-Student
-   ↓
-Attempts Admin Operation
-   ↓
-Authorization Check
-   ↓
-Access Denied
-```
-
-Other test cases include:
-
-- Empty form fields
-- Invalid login credentials
-- Duplicate registration
-- Invalid email
-- Database connection failure
-- Multiple potential matches
-- Logout and re-login
-- Invalid PIN
-- Expired PIN
-- Failed verification
-- Admin access control
-
----
-
-## 🛠️ Technology Stack
+## 🧰 Technology Stack
 
 | Technology | Purpose |
 |---|---|
-| **Java** | Application logic |
-| **Java Swing** | Desktop GUI |
-| **JDBC** | Java–MySQL connectivity |
-| **MySQL** | Database |
-| **Git** | Version control |
-| **GitHub** | Collaboration and source control |
+| Java | Application logic and object-oriented design |
+| Java Swing | Desktop user interface |
+| JDBC | Database connectivity |
+| MySQL | Persistent storage |
+| Apache NetBeans | Development environment |
+| Git and GitHub | Version control and collaboration |
 
 ---
 
-## 📁 Project Structure
+## 🏗️ Application Structure
+
+The project separates user-interface screens, database access, matching logic, notification handling, and advertisement verification into different classes.
 
 ```text
-Back2U/
-│
+Back2U-V2/
 ├── src/
 │   └── back2u/
-│       ├── model/
-│       │   ├── User.java
-│       │   ├── Student.java
-│       │   ├── Admin.java
-│       │   ├── LostItem.java
-│       │   ├── FoundItem.java
-│       │   ├── MatchResult.java
-│       │   ├── Notification.java
-│       │   └── Handover.java
-│       │
-│       ├── matching/
-│       │   ├── Matcher.java
-│       │   ├── DescriptionMatcher.java
-│       │   ├── LocationMatcher.java
-│       │   ├── TimeMatcher.java
-│       │   ├── CategoryMatcher.java
-│       │   └── MatchingEngine.java
-│       │
-│       ├── dao/
-│       │   ├── UserDAO.java
-│       │   ├── LostItemDAO.java
-│       │   ├── FoundItemDAO.java
-│       │   ├── NotificationDAO.java
-│       │   └── HandoverDAO.java
-│       │
-│       ├── service/
-│       │   ├── NotificationService.java
-│       │   ├── VerificationService.java
-│       │   └── HandoverService.java
-│       │
-│       ├── ui/
-│       │   ├── LoginFrame.java
-│       │   ├── SignupFrame.java
-│       │   ├── StudentDashboard.java
-│       │   └── AdminDashboard.java
-│       │
-│       └── util/
-│           └── DatabaseConnection.java
-│
+│       ├── Login.java
+│       ├── UserDashboard.java
+│       ├── ReportLostItem.java
+│       ├── ReportFounditem.java
+│       ├── BrowseFoundAdvertisements.java
+│       ├── RateAdvertisement.java
+│       ├── Notifications.java
+│       ├── PossibleMatches.java
+│       ├── DetailsMatch.java
+│       ├── ItemMatcher.java
+│       ├── ItemMatchingService.java
+│       ├── MatchNotificationService.java
+│       ├── AdvertisementRatingService.java
+│       ├── HandoverArrangement.java
+│       ├── handover.java
+│       ├── AdminDashboard.java
+│       ├── AdminReport.java
+│       └── Conn.java
 ├── database/
-│   └── back2u.sql
-│
-├── README.md
-└── .gitignore
+│   └── database schema.sql
+├── back2u.example.properties
+└── README.md
 ```
+
+*The tree highlights key application classes and may not list every file in the repository. Keep only filenames that exist in your current branch.*
+
+---
+
+## 🗃️ Database Overview
+
+Back2U uses MySQL to store user accounts, lost-and-found advertisements, match records, handover arrangements, and advertisement moderation data.
+
+| Table | Purpose |
+|---|---|
+| `accountdetails` | Stores user account and profile information |
+| `admin_reports` | Stores administrative reports |
+| `advertisement_ratings` | Stores user ratings for advertisements |
+| `advertisement_reports` | Stores reports about suspicious advertisements |
+| `handover` | Stores item handover arrangements and recovery status |
+| `item_matches` | Stores potential matches between lost and found items |
+| `items` | Stores both lost-item reports and found-item advertisements |
+
+The `items` table also supports advertisement trust and moderation through fields such as `initial_trust_score`, `trust_score`, and `ad_review_status`, if these columns are present in the current schema.
+
+### Trust Score Calculation
+
+The rating service combines the initial trust score with the average user rating:
+
+**Updated trust score**
+
+\[
+0.70 \times \text{Initial Trust Score}
++
+0.30 \times \left(\frac{\text{Average Rating}}{5}\times100\right)
+\]
+
+The initial score contributes 70%, while the average user rating contributes 30%. When no ratings exist, the service preserves the initial score.
+
+A score below the configured threshold can trigger renewed review for an approved advertisement. Administrator decisions and other review states are handled by the application's moderation workflow.
+
+---
+
+## ⚙️ Setup and Installation
+
+### Prerequisites
+
+Install the following before running the application:
+
+- Java Development Kit (JDK).
+- Apache NetBeans or another Java IDE.
+- MySQL Server.
+- MySQL Connector/J JDBC driver.
+- Git, if cloning the repository.
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/archa-s-ar/back-2-u-v-2.git
+cd back-2-u
+```
+
+### 2. Open the Project
+
+1. Launch Apache NetBeans.
+2. Open the cloned project.
+3. Allow NetBeans to resolve or configure the project's dependencies.
+4. Confirm that the JDK and MySQL JDBC driver are configured.
+
+### 3. Configure MySQL
+
+1. Start the MySQL server.
+2. Create the database required by the project.
+3. Import `database/database schema_v2.sql`.
+4. Verify that the required tables have been created.
+
+For example, if your database is named `back2u`:
+
+```sql
+CREATE DATABASE back2u;
+```
+
+Then select that database and import the SQL schema from the repository. Use the actual database name expected by your project configuration.
+
+### 4. Configure Database Connectivity
+
+Update the database connection settings used by `Conn.java` or the project's configuration mechanism.
+
+Typical JDBC URL format:
+
+```text
+jdbc:mysql://localhost:3306/back2u
+```
+
+Configure the appropriate database username and password for your local MySQL installation.
+
+Use `back2u.example.properties`, copy it to the configuration filename expected by the application and fill in your local settings. Do not commit real database credentials to GitHub.
+
+### 5. Run the Application
+
+1. Build the project in NetBeans.
+2. Resolve any compilation errors.
+3. Run the project's configured main class.
+4. Test registration, login, reporting, matching, notifications, advertisement review, ratings, and handover workflows.
+
+---
+
+## 🔄 Advertisement Moderation Workflow
+
+```text
+User submits a found-item advertisement
+                 |
+                 v
+       Calculate initial score
+                 |
+                 v
+       Check review threshold
+          /           \
+       Below 50      50 or above
+          |              |
+          v              v
+    Pending review    Approved
+          |              |
+          v              v
+   Admin reviews    Visible in approved
+   the advertisement  advertisement browser
+                         |
+                         v
+                 Users can rate or
+                 report the listing
+                         |
+                         v
+                 Recalculate trust score
+                         |
+                         v
+                 Review again if required
+```
+
+The diagram describes the intended workflow. Confirm the complete flow against the current application code and database before treating it as fully tested.
+
+---
+
+## 🧪 Testing Checklist
+
+Before declaring a release ready, test the following scenarios:
+
+- [ ] A user can register and log in.
+- [ ] A user can submit a lost-item report.
+- [ ] A user can submit a found-item advertisement.
+- [ ] Initial trust scores and review statuses are saved correctly.
+- [ ] Pending or rejected advertisements do not appear in the approved-advertisement browser.
+- [ ] Approved found advertisements appear with the correct information.
+- [ ] A user cannot rate their own advertisement.
+- [ ] A user cannot submit a rating outside the range of 1–5.
+- [ ] A user's updated rating replaces their previous rating.
+- [ ] Trust scores are recalculated correctly after ratings.
+- [ ] Users can report suspicious advertisements.
+- [ ] Administrators can review, approve, and reject eligible advertisements.
+- [ ] Matching considers eligible advertisements only.
+- [ ] Match notifications display the expected information.
+- [ ] Handover details and PIN verification work correctly.
+- [ ] Completing a handover updates the relevant records consistently.
+- [ ] Existing features continue to work after integrating advertisement verification.
+
+---
+
+## 🔐 Security and Data Integrity
+
+Back2U includes database-backed user accounts, advertisement moderation, match tracking, and handover records. When deploying or extending the application, ensure that:
+
+- Database credentials remain outside public repositories.
+- SQL operations use prepared statements where user input is involved.
+- Passwords are stored using an appropriate password-hashing mechanism.
+- User and administrator permissions are checked in application logic, not only hidden in the interface.
+- Trust scores are not treated as proof of authenticity.
+- Database transactions protect related updates during handover completion.
+- User-submitted descriptions and report details are handled safely.
+
+These are security requirements and recommendations; verify each against the current implementation rather than assuming every item is already satisfied.
 
 ---
 
 ## 🚀 Future Scope
 
-Back2U can be extended with:
+Potential improvements include:
 
-- Image-based item similarity
-- Advanced natural-language matching
-- Mobile application
-- Email notifications
-- Push notifications
-- QR-based item identification
-- Campus-wide deployment
-- Frequently lost location analytics
-- Improved duplicate-claim detection
-- Advanced fraud detection
+- Email notifications for important match updates.
+- Improved match ranking and duplicate-report detection.
+- Stronger ownership verification.
+- Enhanced administrator analytics and moderation history.
+- More detailed audit logs.
+- Improved accessibility and user-interface consistency.
+- Automated integration and database tests.
 
 ---
 
-## 👥 Team
-
-### Project
-
-**Back2U — Smart Campus Lost & Found System**
-
-### Tagline
-
-> **There’s Always a Way Back.**
-
-### Contributors
+## 👥 Contributors
 
 - **Aadithya K**
 - **Archa S**
@@ -813,27 +324,12 @@ Back2U can be extended with:
 
 ---
 
-## 📊 Project Status
+## 📌 Project Status
 
-**Status:** 🚧 Under Development
-
-Back2U is being developed as an academic Java Swing project focusing on:
-
-- Object-Oriented Programming
-- Java Swing
-- JDBC
-- MySQL
-- Design Patterns
-- Database Management
-- Role-Based Access Control
-- Practical campus problem solving
+**Back2U v2 — Completed.**
 
 ---
 
-## ❤️ Why Back2U?
-
-Losing something on campus shouldn't mean losing it forever.
-
-Back2U provides a structured way to **report, match, verify, hand over, and return** lost belongings.
-
-### **Back2U — There’s Always a Way Back.**
+<p align="center">
+  <strong>Back2U — Because every lost item deserves a way back.</strong>
+</p>
