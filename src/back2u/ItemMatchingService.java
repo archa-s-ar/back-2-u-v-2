@@ -13,7 +13,6 @@ import java.util.List;
 
 public class ItemMatchingService {
 
-    // Stores one possible lost-found match.
     public static class MatchResult {
         public int lostItemId;
         public int foundItemId;
@@ -48,7 +47,6 @@ public class ItemMatchingService {
         }
     }
 
-    // Represents an item fetched from the database.
     private static class Item {
         int id;
         String name;
@@ -67,13 +65,17 @@ public class ItemMatchingService {
             uniqueDetails = rs.getString("unique_details");
 
             Date sqlDate = rs.getDate("date_occurred");
-
-            date = sqlDate == null
-                    ? null : sqlDate.toLocalDate();
+            date = sqlDate == null ? null : sqlDate.toLocalDate();
         }
     }
 
-    // Fetch all open reports and compare LOST against FOUND.
+    /*
+     * Matching policy:
+     * 1. Only OPEN lost/found advertisements are considered.
+     * 2. APPROVED advertisements are eligible regardless of score.
+     * 3. Non-rejected advertisements with trust_score >= 50
+     *    are also eligible without admin approval.
+     */
     public static List<MatchResult> findAllMatches()
             throws SQLException {
 
@@ -82,25 +84,23 @@ public class ItemMatchingService {
         List<MatchResult> matches = new ArrayList<>();
 
         String sql =
-            "SELECT item_id, item_name, category, description, " +
-            "location, date_occurred, unique_details, " +
-            "report_type, status " +
-            "FROM items " +
-            "WHERE report_type IN ('LOST', 'FOUND')";
+                "SELECT item_id, item_name, category, description, " +
+                "location, date_occurred, unique_details, report_type " +
+                "FROM items " +
+                "WHERE report_type IN ('LOST', 'FOUND') " +
+                "AND status = 'OPEN' " +
+                "AND (" +
+                "    ad_review_status = 'APPROVED' " +
+                "    OR (trust_score >= 50 " +
+                "        AND ad_review_status <> 'REJECTED')" +
+                ")";
 
         try (Connection con = new Conn().c;
              PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-
                 String type = rs.getString("report_type");
-                String status = rs.getString("status");
-
-                if (!"OPEN".equalsIgnoreCase(status)) {
-                    continue;
-                }
-
                 Item item = new Item(rs);
 
                 if ("LOST".equalsIgnoreCase(type)) {
@@ -111,51 +111,53 @@ public class ItemMatchingService {
             }
         }
 
-        // Compare every lost report with every found report.
         for (Item lost : lostItems) {
             for (Item found : foundItems) {
 
                 int score = ItemMatcher.calculateScore(
-                    lost.name,
-                    found.name,
-                    lost.description,
-                    found.description,
-                    lost.location,
-                    found.location,
-                    lost.date,
-                    found.date,
-                    lost.category,
-                    found.category,
-                    lost.uniqueDetails,
-                    found.uniqueDetails
+                        lost.name,
+                        found.name,
+                        lost.description,
+                        found.description,
+                        lost.location,
+                        found.location,
+                        lost.date,
+                        found.date,
+                        lost.category,
+                        found.category,
+                        lost.uniqueDetails,
+                        found.uniqueDetails
                 );
 
                 if (score >= 30) {
-    matches.add(new MatchResult(
-        lost.id, found.id,
-        lost.name, found.name,
-        found.category, found.description,
-        found.location, found.date, score
-    ));
-}
+                    matches.add(new MatchResult(
+                            lost.id,
+                            found.id,
+                            lost.name,
+                            found.name,
+                            found.category,
+                            found.description,
+                            found.location,
+                            found.date,
+                            score
+                    ));
+                }
             }
         }
 
-        // Group by lost item, with its strongest matches first.
         matches.sort(
-            Comparator.comparingInt(
-                (MatchResult m) -> m.lostItemId
-            ).thenComparing(
                 Comparator.comparingInt(
-                    (MatchResult m) -> m.score
-                ).reversed()
-            )
+                        (MatchResult m) -> m.lostItemId
+                ).thenComparing(
+                        Comparator.comparingInt(
+                                (MatchResult m) -> m.score
+                        ).reversed()
+                )
         );
 
         return matches;
     }
 
-    // Find possible matches for one particular lost report.
     public static List<MatchResult> findMatches(int lostItemId)
             throws SQLException {
 
