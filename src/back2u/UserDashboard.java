@@ -6,8 +6,9 @@ import java.awt.*;
 import java.awt.event.*;
 
 public class UserDashboard extends JFrame implements ActionListener{
-    JButton lostBtn,foundBtn,notificationsBtn,adminBtn,logout;
+    JButton lostBtn,foundBtn,notificationsBtn,adminBtn,logout,browseAdsBtn ;
     private final int userId;
+    
     
     UserDashboard(int userId){
         this.userId = userId;
@@ -26,13 +27,15 @@ public class UserDashboard extends JFrame implements ActionListener{
         notificationsBtn.addActionListener(this);
         adminBtn = new JButton("Report to Admin");
         adminBtn.addActionListener(this);
+        browseAdsBtn = new JButton("Browse Found Advertisements");
+        browseAdsBtn.addActionListener(this);
         logout = new JButton("Logout");
         logout.addActionListener(this);
-
+        
         
         Font buttonFont = new Font("Raleway", Font.BOLD, 18);
 
-        JButton[] buttons = {lostBtn, foundBtn, notificationsBtn, adminBtn,logout};
+        JButton[] buttons = {lostBtn, foundBtn, notificationsBtn, adminBtn,browseAdsBtn,logout};
 
         for (JButton button : buttons) {
             button.setFont(buttonFont);
@@ -45,6 +48,7 @@ public class UserDashboard extends JFrame implements ActionListener{
         options.add(foundBtn);
         options.add(notificationsBtn);
         options.add(adminBtn);
+        options.add(browseAdsBtn);
         options.add(logout);
 
         add(options);
@@ -79,6 +83,9 @@ public class UserDashboard extends JFrame implements ActionListener{
 
     } else if (e.getSource() == adminBtn) {
         new AdminReport(userId).setVisible(true);
+    }
+    else if (e.getSource() == browseAdsBtn) {
+        new BrowseFoundAdvertisements(userId).setVisible(true);
     }
     else if (e.getSource() == logout) {
         setVisible(false);

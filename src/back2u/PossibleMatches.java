@@ -11,10 +11,12 @@ public class PossibleMatches extends JFrame {
 
     private JTable table;
     private DefaultTableModel model;
-    private int lostItemId;
+    private final int lostItemId;
+    private final int userId;
 
-    public PossibleMatches(int lostItemId) {
-        this.lostItemId = lostItemId;
+public PossibleMatches(int lostItemId, int userId) {
+    this.lostItemId = lostItemId;
+    this.userId = userId;
 
         setTitle("Back2U - Possible Matches");
         setSize(850, 400);
@@ -40,13 +42,17 @@ public class PossibleMatches extends JFrame {
         add(new JScrollPane(table), BorderLayout.CENTER);
 
         JButton refreshButton = new JButton("Refresh");
+        JButton rateButton = new JButton("Rate Advertisement");
+        
         refreshButton.addActionListener(e -> loadMatches());
+        rateButton.addActionListener(e -> rateSelectedAdvertisement());
 
         JButton closeButton = new JButton("Close");
         closeButton.addActionListener(e -> dispose());
 
         JPanel buttons = new JPanel();
         buttons.add(refreshButton);
+        buttons.add(rateButton);
         buttons.add(closeButton);
 
         add(buttons, BorderLayout.SOUTH);
@@ -93,4 +99,31 @@ public class PossibleMatches extends JFrame {
             );
         }
     }
+    
+    private void rateSelectedAdvertisement() {
+
+    int selectedRow = table.getSelectedRow();
+
+    if (selectedRow < 0) {
+        JOptionPane.showMessageDialog(
+                this,
+                "Please select a found advertisement first.");
+        return;
+    }
+
+    selectedRow = table.convertRowIndexToModel(selectedRow);
+
+    int foundItemId = Integer.parseInt(
+            model.getValueAt(selectedRow, 0).toString());
+
+    String itemName =
+            model.getValueAt(selectedRow, 1).toString();
+
+    // Obtain the logged-in user's ID from the constructor.
+    new RateAdvertisement(
+            this, foundItemId, userId, itemName
+    ).setVisible(true);
+
+    loadMatches();
+}
 }

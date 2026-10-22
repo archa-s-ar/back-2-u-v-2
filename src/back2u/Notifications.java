@@ -50,6 +50,7 @@ public class Notifications extends JFrame {
         JButton refreshButton = new JButton("Refresh");
         JButton closeButton = new JButton("Close");
         JButton checkStatusButton = new JButton("Check Status");
+        
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 12));
         buttons.add(viewButton);
