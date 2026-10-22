@@ -70,10 +70,8 @@ public class MatchNotificationService {
 
     // Same eligibility policy as ItemMatchingService.
     private static String eligibleItemCondition(String alias) {
-        return "(" + alias + ".ad_review_status = 'APPROVED' " +
-                "OR (" + alias + ".trust_score >= 50 " +
-                "AND " + alias + ".ad_review_status <> 'REJECTED'))";
-    }
+    return alias + ".ad_review_status = 'APPROVED'";
+}
 
     public static List<Notification> getNotifications(int userId)
             throws SQLException {
@@ -95,8 +93,6 @@ public class MatchNotificationService {
                 "JOIN items lost ON lost.item_id = im.lost_item_id " +
                 "JOIN items found ON found.item_id = im.found_item_id " +
                 "WHERE (lost.user_id = ? OR found.user_id = ?) " +
-                "AND lost.status = 'OPEN' " +
-                "AND found.status = 'OPEN' " +
                 "AND " + eligibleItemCondition("lost") + " " +
                 "AND " + eligibleItemCondition("found") + " " +
                 "ORDER BY im.created_at DESC";

@@ -5,277 +5,379 @@ import javax.swing.*;
 import java.awt.*;
 import java.sql.*;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 
 public class ReportLostItem extends JFrame {
 
+    private static final int REVIEW_THRESHOLD = 50;
+
     private final int userId;
 
-    private JTextField itemName, dateLost, timeLost, location;
-    private JComboBox<String> category;
+    private JPanel itemPanel, lostPanel, extraPanel;
+    private JTextField itemName, dateLost, timeLost, locationLost;
     private JTextArea description, uniqueDetails;
+    private JScrollPane scroll, uniqueScroll;
     private JButton submit, cancel;
+    private JComboBox<String> categoryBox;
 
     public ReportLostItem(int userId) {
+
         this.userId = userId;
 
-        setTitle("Back2U - Report Lost Item");
-        setSize(600, 720);
+        setTitle("REPORT LOST ITEM");
+        setLayout(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setLocationRelativeTo(null);
 
-        buildForm();
-        setVisible(true);
-    }
+        JLabel head = new JLabel("REPORT LOST ITEM");
+        head.setBounds(250, 50, 400, 30);
+        head.setFont(new Font("Raleway", Font.BOLD, 30));
+        add(head);
 
-    private void buildForm() {
-        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
-        mainPanel.setBorder(
-                BorderFactory.createEmptyBorder(15, 20, 15, 20));
+        // Item information panel
+        itemPanel = new JPanel();
+        itemPanel.setLayout(null);
+        itemPanel.setBounds(50, 100, 800, 230);
+        itemPanel.setBackground(Color.LIGHT_GRAY);
+        add(itemPanel);
 
-        JLabel heading = new JLabel(
-                "Report a Lost Item", SwingConstants.CENTER);
-        heading.setFont(new Font("Arial", Font.BOLD, 24));
-        mainPanel.add(heading, BorderLayout.NORTH);
+        JLabel itemTitle = new JLabel("Item Information");
+        itemTitle.setBounds(20, 10, 250, 25);
+        itemTitle.setFont(new Font("Raleway", Font.BOLD, 20));
+        itemPanel.add(itemTitle);
 
-        JPanel formPanel = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(6, 6, 6, 6);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.anchor = GridBagConstraints.WEST;
+        JLabel categoryLabel = new JLabel("Item Category:");
+        categoryLabel.setBounds(30, 50, 150, 30);
+        categoryLabel.setFont(new Font("Raleway", Font.BOLD, 16));
+        itemPanel.add(categoryLabel);
 
-        itemName = new JTextField(20);
+        String[] categories = {
+            "Select Category",
+            "Electronics",
+            "Bags",
+            "Books & Stationery",
+            "Clothing",
+            "ID Cards",
+            "Keys",
+            "Wallets",
+            "Other"
+        };
 
-        category = new JComboBox<>(new String[]{
-            "Electronics", "Documents", "Wallet/Purse",
-            "Keys", "Clothing", "Bags", "Jewellery",
-            "Books", "Accessories", "Other"
-        });
+        categoryBox = new JComboBox<>(categories);
+        categoryBox.setBounds(220, 50, 450, 30);
+        itemPanel.add(categoryBox);
 
-        description = new JTextArea(3, 20);
+        JLabel nameLabel = new JLabel("Item Name:");
+        nameLabel.setBounds(30, 90, 150, 30);
+        nameLabel.setFont(new Font("Raleway", Font.BOLD, 16));
+        itemPanel.add(nameLabel);
+
+        itemName = new JTextField();
+        itemName.setBounds(220, 90, 450, 30);
+        itemPanel.add(itemName);
+
+        JLabel descriptionLabel = new JLabel("Description:");
+        descriptionLabel.setBounds(30, 130, 150, 30);
+        descriptionLabel.setFont(new Font("Raleway", Font.BOLD, 16));
+        itemPanel.add(descriptionLabel);
+
+        description = new JTextArea();
         description.setLineWrap(true);
         description.setWrapStyleWord(true);
 
-        dateLost = new JTextField(LocalDate.now().toString(), 20);
-        timeLost = new JTextField(
-                LocalTime.now().withSecond(0).withNano(0).toString(), 20);
-        location = new JTextField(20);
+        scroll = new JScrollPane(description);
+        scroll.setBounds(220, 130, 450, 80);
+        itemPanel.add(scroll);
 
-        uniqueDetails = new JTextArea(3, 20);
+        // Lost details panel
+        lostPanel = new JPanel();
+        lostPanel.setLayout(null);
+        lostPanel.setBounds(50, 340, 800, 175);
+        lostPanel.setBackground(Color.LIGHT_GRAY);
+        add(lostPanel);
+
+        JLabel lostTitle = new JLabel("Lost Details");
+        lostTitle.setBounds(20, 10, 250, 25);
+        lostTitle.setFont(new Font("Raleway", Font.BOLD, 20));
+        lostPanel.add(lostTitle);
+
+        JLabel dateLabel = new JLabel("Date Lost:");
+        dateLabel.setBounds(30, 45, 150, 25);
+        dateLabel.setFont(new Font("Raleway", Font.BOLD, 16));
+        lostPanel.add(dateLabel);
+
+        dateLost = new JTextField();
+        dateLost.setBounds(220, 45, 450, 30);
+        dateLost.setToolTipText("Enter date as yyyy-mm-dd");
+        lostPanel.add(dateLost);
+
+        JLabel timeLabel = new JLabel("Approximate Time:");
+        timeLabel.setBounds(30, 85, 180, 25);
+        timeLabel.setFont(new Font("Raleway", Font.BOLD, 16));
+        lostPanel.add(timeLabel);
+
+        timeLost = new JTextField();
+        timeLost.setBounds(220, 85, 450, 30);
+        timeLost.setToolTipText("Example: 10:30 AM");
+        lostPanel.add(timeLost);
+
+        JLabel locationLabel = new JLabel("Location Lost:");
+        locationLabel.setBounds(30, 125, 150, 25);
+        locationLabel.setFont(new Font("Raleway", Font.BOLD, 16));
+        lostPanel.add(locationLabel);
+
+        locationLost = new JTextField();
+        locationLost.setBounds(220, 125, 450, 30);
+        locationLost.setToolTipText(
+                "Example: Library, Main Block, Canteen");
+        lostPanel.add(locationLost);
+
+        // Additional information panel
+        extraPanel = new JPanel();
+        extraPanel.setLayout(null);
+        extraPanel.setBounds(50, 525, 800, 130);
+        extraPanel.setBackground(Color.LIGHT_GRAY);
+        add(extraPanel);
+
+        JLabel extraTitle = new JLabel("Additional Information");
+        extraTitle.setBounds(20, 5, 300, 25);
+        extraTitle.setFont(new Font("Raleway", Font.BOLD, 20));
+        extraPanel.add(extraTitle);
+
+        JLabel uniqueLabel =
+                new JLabel("Unique Identifying Details:");
+        uniqueLabel.setBounds(30, 35, 250, 25);
+        uniqueLabel.setFont(new Font("Raleway", Font.BOLD, 16));
+        extraPanel.add(uniqueLabel);
+
+        uniqueDetails = new JTextArea();
         uniqueDetails.setLineWrap(true);
         uniqueDetails.setWrapStyleWord(true);
 
-        int row = 0;
-        addField(formPanel, gbc, row++, "Item name:", itemName);
-        addField(formPanel, gbc, row++, "Category:", category);
-        addField(formPanel, gbc, row++, "Description:",
-                new JScrollPane(description));
-        addField(formPanel, gbc, row++, "Date lost (YYYY-MM-DD):",
-                dateLost);
-        addField(formPanel, gbc, row++, "Time lost (HH:MM):",
-                timeLost);
-        addField(formPanel, gbc, row++, "Location:", location);
-        addField(formPanel, gbc, row++, "Unique identifying details:",
-                new JScrollPane(uniqueDetails));
+        uniqueScroll = new JScrollPane(uniqueDetails);
+        uniqueScroll.setBounds(30, 60, 700, 55);
+        extraPanel.add(uniqueScroll);
 
-        JLabel hint = new JLabel(
-                "Use 24-hour time, for example 14:30.");
-        hint.setForeground(Color.GRAY);
-        gbc.gridx = 1;
-        gbc.gridy = row;
-        formPanel.add(hint, gbc);
-
-        mainPanel.add(new JScrollPane(formPanel), BorderLayout.CENTER);
-
-        submit = new JButton("Submit Lost Report");
+        // Buttons
         cancel = new JButton("Cancel");
+        cancel.setBounds(480, 660, 150, 35);
+        cancel.setFont(new Font("Raleway", Font.BOLD, 16));
+        add(cancel);
 
-        JPanel buttons = new JPanel();
-        buttons.add(submit);
-        buttons.add(cancel);
-        mainPanel.add(buttons, BorderLayout.SOUTH);
+        submit = new JButton("Submit Report");
+        submit.setBounds(650, 660, 200, 35);
+        submit.setFont(new Font("Raleway", Font.BOLD, 16));
+        add(submit);
 
-        submit.addActionListener(e -> saveLostItem());
         cancel.addActionListener(e -> dispose());
+        submit.addActionListener(e -> submitLostItem());
 
-        setContentPane(mainPanel);
+        getContentPane().setBackground(Color.WHITE);
+        setSize(900, 780);
+        setLocationRelativeTo(null);
+        setVisible(true);
     }
 
-    private void addField(
-            JPanel panel, GridBagConstraints gbc,
-            int row, String label, Component field) {
+    private void submitLostItem() {
 
-        gbc.gridy = row;
-        gbc.gridx = 0;
-        gbc.weightx = 0;
-        panel.add(new JLabel(label), gbc);
+        String selectedCategory =
+                (String) categoryBox.getSelectedItem();
 
-        gbc.gridx = 1;
-        gbc.weightx = 1;
-        panel.add(field, gbc);
-    }
-
-    private void saveLostItem() {
         String name = itemName.getText().trim();
-        String selectedCategory = (String) category.getSelectedItem();
         String itemDescription = description.getText().trim();
-        String lostDate = dateLost.getText().trim();
+        String date = dateLost.getText().trim();
         String time = timeLost.getText().trim();
-        String itemLocation = location.getText().trim();
+        String location = locationLost.getText().trim();
         String details = uniqueDetails.getText().trim();
 
-        if (name.isEmpty() || itemDescription.isEmpty()
-                || lostDate.isEmpty() || time.isEmpty()
-                || itemLocation.isEmpty() || details.isEmpty()) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Please complete all fields, including unique details.",
-                    "Missing Information",
-                    JOptionPane.WARNING_MESSAGE);
+        // Validate required fields
+        if (categoryBox.getSelectedIndex() == 0) {
+            showError("Please select a category.");
             return;
         }
 
-        java.sql.Date sqlDate;
+        if (name.isEmpty()) {
+            showError("Please enter the item name.");
+            return;
+        }
+
+        if (itemDescription.isEmpty()) {
+            showError("Please enter the description.");
+            return;
+        }
+
+        if (date.isEmpty()) {
+            showError("Please enter the date lost.");
+            return;
+        }
+
+        if (time.isEmpty()) {
+            showError("Please enter the approximate time.");
+            return;
+        }
+
+        if (location.isEmpty()) {
+            showError("Please enter the location lost.");
+            return;
+        }
+
+        if (details.isEmpty()) {
+            showError(
+                    "Please enter unique identifying details.");
+            return;
+        }
+
+        if (userId <= 0) {
+            showError("Invalid user ID. Please log in again.");
+            return;
+        }
+
+        // Validate date format and prevent future dates.
+        final Date sqlDate;
 
         try {
-            sqlDate = java.sql.Date.valueOf(LocalDate.parse(lostDate));
-            LocalTime.parse(time);
-        } catch (DateTimeParseException ex) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Enter a valid date (YYYY-MM-DD) and time (HH:MM).",
-                    "Invalid Date or Time",
-                    JOptionPane.ERROR_MESSAGE);
-            return;
-        }
+            LocalDate parsedDate = LocalDate.parse(date);
 
-        if (selectedCategory == null) {
-            JOptionPane.showMessageDialog(this, "Select a category.");
-            return;
-        }
-
-        final int trustScore;
-
-        try {
-            InitialTrustScoreCalculator calculator =
-                    new InitialTrustScoreCalculator();
-
-            trustScore = Math.max(0, Math.min(100,
-                    calculator.calculateScore(
-                            name, selectedCategory, itemDescription,
-                            lostDate, time, itemLocation, details)));
-
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(
-                    this, "Could not calculate trust score: "
-                            + ex.getMessage(),
-                    "Scoring Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        String reviewStatus =
-                trustScore < 50 ? "PENDING_REVIEW" : "APPROVED";
-
-        String sql =
-                "INSERT INTO items " +
-                "(user_id, report_type, item_name, category, " +
-                "description, date_occurred, time_occurred, location, " +
-                "status, unique_details, initial_trust_score, " +
-                "trust_score, ad_review_status) " +
-                "VALUES (?, 'LOST', ?, ?, ?, ?, ?, ?, 'OPEN', ?, ?, ?, ?)";
-
-        Conn conn = null;
-        int lostItemId = -1;
-
-        try {
-            conn = new Conn();
-
-            if (conn.c == null) {
-                throw new SQLException("Database connection unavailable.");
+            if (parsedDate.isAfter(LocalDate.now())) {
+                showError("The lost date cannot be in the future.");
+                return;
             }
 
-            try (PreparedStatement ps = conn.c.prepareStatement(
-                    sql, Statement.RETURN_GENERATED_KEYS)) {
+            sqlDate = Date.valueOf(parsedDate);
 
-                ps.setInt(1, userId);
-                ps.setString(2, name);
-                ps.setString(3, selectedCategory);
-                ps.setString(4, itemDescription);
-                ps.setDate(5, sqlDate);
-                ps.setString(6, time);
-                ps.setString(7, itemLocation);
-                ps.setString(8, details);
-                ps.setInt(9, trustScore);
-                ps.setInt(10, trustScore);
-                ps.setString(11, reviewStatus);
+        } catch (DateTimeParseException ex) {
+            showError("Invalid date. Use yyyy-mm-dd.");
+            return;
+        }
 
-                if (ps.executeUpdate() == 0) {
-                    throw new SQLException("The report could not be saved.");
-                }
+        // Calculate initial listing-quality score.
+        InitialTrustScoreCalculator calculator =
+                new InitialTrustScoreCalculator();
+
+        int initialScore = calculator.calculateScore(
+                name,
+                selectedCategory,
+                itemDescription,
+                date,
+                time,
+                location,
+                details
+        );
+
+        int trustScore = initialScore;
+
+        String reviewStatus =
+                trustScore < REVIEW_THRESHOLD
+                        ? "PENDING_REVIEW"
+                        : "APPROVED";
+
+        String sql =
+                "INSERT INTO items "
+                + "(user_id, report_type, item_name, category, "
+                + "description, date_occurred, time_occurred, "
+                + "location, status, unique_details, "
+                + "initial_trust_score, trust_score, "
+                + "ad_review_status) "
+                + "VALUES (?, 'LOST', ?, ?, ?, ?, ?, ?, "
+                + "'OPEN', ?, ?, ?, ?)";
+
+        Conn conn = new Conn();
+
+        if (conn.c == null) {
+            showError(
+                    "Database connection failed. "
+                    + "Please check Conn.java.");
+            return;
+        }
+
+        try (PreparedStatement ps = conn.c.prepareStatement(
+                sql, Statement.RETURN_GENERATED_KEYS)) {
+
+            ps.setInt(1, userId);
+            ps.setString(2, name);
+            ps.setString(3, selectedCategory);
+            ps.setString(4, itemDescription);
+            ps.setDate(5, sqlDate);
+            ps.setString(6, time);
+            ps.setString(7, location);
+            ps.setString(8, details);
+            ps.setInt(9, initialScore);
+            ps.setInt(10, trustScore);
+            ps.setString(11, reviewStatus);
+
+            int rows = ps.executeUpdate();
+
+            if (rows > 0) {
+
+                int newItemId = -1;
 
                 try (ResultSet keys = ps.getGeneratedKeys()) {
                     if (keys.next()) {
-                        lostItemId = keys.getInt(1);
+                        newItemId = keys.getInt(1);
                     }
                 }
+
+                String message =
+                        "Lost item report saved successfully!\n"
+                        + "Initial trust score: " + trustScore
+                        + "/100\n";
+
+                if ("PENDING_REVIEW".equals(reviewStatus)) {
+                    message +=
+                            "Status: Pending administrator review.";
+                } else {
+                    message +=
+                            "Status: Approved and eligible for matching.";
+                }
+
+                if (newItemId > 0) {
+                    message += "\nReport ID: " + newItemId;
+                }
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        message,
+                        "Report Submitted",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+
+                dispose();
             }
 
         } catch (SQLException ex) {
-            JOptionPane.showMessageDialog(
-                    this, "Database error:\n" + ex.getMessage(),
-                    "Database Error", JOptionPane.ERROR_MESSAGE);
+
+            showError("Could not save report: " + ex.getMessage());
             ex.printStackTrace();
-            return;
 
         } finally {
-            closeConnection(conn);
+
+            try {
+                if (conn.s != null) {
+                    conn.s.close();
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+
+            try {
+                if (conn.c != null) {
+                    conn.c.close();
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
         }
-
-        if (lostItemId <= 0) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "The report was saved, but its ID could not be retrieved.",
-                    "Warning", JOptionPane.WARNING_MESSAGE);
-            dispose();
-            return;
-        }
-
-        String message = "Lost-item report submitted successfully.\n"
-                + "Item ID: " + lostItemId + "\n"
-                + "Initial trust score: " + trustScore + "/100\n"
-                + (trustScore < 50
-                    ? "Status: Pending administrator review."
-                    : "Status: Approved for matching.");
-
-        JOptionPane.showMessageDialog(
-                this, message, "Report Submitted",
-                JOptionPane.INFORMATION_MESSAGE);
-
-        dispose();
-
-        new PossibleMatches(lostItemId, userId).setVisible(true);
     }
 
-    private void closeConnection(Conn conn) {
-        if (conn == null) {
-            return;
-        }
+    private void showError(String message) {
+        JOptionPane.showMessageDialog(
+                this,
+                message,
+                "Validation Error",
+                JOptionPane.ERROR_MESSAGE
+        );
+    }
 
-        try {
-            if (conn.s != null) {
-                conn.s.close();
-            }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-        }
-
-        try {
-            if (conn.c != null) {
-                conn.c.close();
-            }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-        }
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new ReportLostItem(1));
     }
 }

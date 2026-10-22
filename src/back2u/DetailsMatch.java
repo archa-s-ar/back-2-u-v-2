@@ -163,16 +163,28 @@ public class DetailsMatch extends JFrame {
             }
 
             String finderQuery =
-        "SELECT a.name, a.student_id, a.phone, i.user_id "
-        + "FROM items i "
-        + "LEFT JOIN accountdetails a ON a.user_id = i.user_id "
-        + "WHERE i.item_id = ? "
-        + "AND i.report_type = 'FOUND'";
+        "SELECT a.name, a.student_id, a.phone, i.user_id " +
+        "FROM item_matches im " +
+        "JOIN items lost ON lost.item_id = im.lost_item_id " +
+        "JOIN items i ON i.item_id = im.found_item_id " +
+        "LEFT JOIN accountdetails a ON a.user_id = i.user_id " +
+        "WHERE im.match_id = ? " +
+        "AND im.lost_item_id = ? " +
+        "AND im.found_item_id = ? " +
+        "AND lost.user_id = ? " +
+        "AND lost.report_type = 'LOST' " +
+        "AND i.report_type = 'FOUND' " +
+        "AND im.match_status = 'VERIFICATION' " +
+        "AND im.owner_response = 'CONFIRMED' " +
+        "AND im.finder_response = 'CONFIRMED'";
             
        
 
 try (PreparedStatement ps = conn.c.prepareStatement(finderQuery)) {
-    ps.setInt(1, foundItemId);
+    ps.setInt(1, matchId);
+ps.setInt(2, lostItemId);
+ps.setInt(3, foundItemId);
+ps.setInt(4, ownerUserId);
 
     try (ResultSet rs = ps.executeQuery()) {
         if (rs.next()) {

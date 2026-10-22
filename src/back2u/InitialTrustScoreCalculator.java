@@ -2,6 +2,8 @@
 package back2u;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -16,7 +18,26 @@ public class InitialTrustScoreCalculator {
                     "unknown", "misc", "something", "human"
             ));
 
+    /**
+     * Backward-compatible method.
+     * Existing calls retain the original lost-item scoring.
+     */
     public int calculateScore(
+            String itemName,
+            String category,
+            String description,
+            String date,
+            String time,
+            String location,
+            String uniqueDetails) {
+
+        return calculateLostScore(
+                itemName, category, description,
+                date, time, location, uniqueDetails
+        );
+    }
+
+    public int calculateLostScore(
             String itemName,
             String category,
             String description,
@@ -27,15 +48,36 @@ public class InitialTrustScoreCalculator {
 
         int score = 0;
 
-        score += scoreItemName(itemName);           // 20
-        score += scoreDescription(description);    // 25
-        score += scoreUniqueDetails(uniqueDetails);// 20
-        score += scoreLocation(location);          // 15
-        score += scoreDateAndTime(date, time);     // 10
-        score += scoreCategory(itemName, category,
-                               description);      // 10
+        score += scale(scoreItemName(itemName), 20, 20);
+        score += scale(scoreDescription(description), 25, 25);
+        score += scoreUniqueDetails(uniqueDetails);
+        score += scale(scoreLocation(location), 15, 15);
+        score += scale(scoreDateAndTime(date, time), 10, 10);
+        score += scale(
+                scoreCategory(itemName, category, description),
+                10, 10
+        );
 
-        return Math.max(0, Math.min(score, 100));
+        return clamp(score);
+    }
+
+    public int calculateFoundScore(
+            String itemName,
+            String category,
+            String description,
+            String date,
+            String time,
+            String location) {
+
+        int score = 0;
+
+        score += scale(scoreItemName(itemName), 20, 25);
+        score += scale(scoreDescription(description), 25, 30);
+        score += scale(scoreLocation(location), 15, 20);
+        score += scale(scoreDateAndTime(date, time), 10, 15);
+        score += scoreCategory(itemName, category, description);
+
+        return clamp(score);
     }
 
     private int scoreItemName(String name) {
@@ -60,11 +102,7 @@ public class InitialTrustScoreCalculator {
             return 12;
         }
 
-        if (words >= 2 || value.length() >= 7) {
-            return 20;
-        }
-
-        return 12;
+        return 20;
     }
 
     private int scoreDescription(String description) {
@@ -77,9 +115,8 @@ public class InitialTrustScoreCalculator {
         int words = countWords(value);
         int length = value.length();
 
-        // Avoid giving high scores to generic descriptions.
         if (value.matches(
-                "(?i)(human|homo sapiens|unknown|nothing|none|"
+                "(human|homo sapiens|unknown|nothing|none|"
                 + "not known|item|object|something)[.! ]*")) {
             return 1;
         }
@@ -133,24 +170,18 @@ public class InitialTrustScoreCalculator {
             return 0;
         }
 
-        String value = location.trim().toLowerCase(Locale.ROOT);
+        String value = normalize(location);
 
         if (value.matches(
-                "(unknown|somewhere|anywhere|not known|n/a|na)")) {
+                "(unknown|somewhere|anywhere|not known|n a|na)")) {
             return 2;
         }
-
-        int words = countWords(value);
 
         if (value.length() < 4) {
             return 3;
         }
 
-        if (words == 1) {
-            return 9;
-        }
-
-        return 15;
+        return countWords(value) == 1 ? 9 : 15;
     }
 
     private int scoreDateAndTime(String date, String time) {
@@ -159,33 +190,45 @@ public class InitialTrustScoreCalculator {
 
         if (!isBlank(date)) {
             try {
-                LocalDate parsed = LocalDate.parse(date.trim());
+                LocalDate parsedDate = LocalDate.parse(date.trim());
 
-                if (!parsed.isAfter(LocalDate.now())) {
+                if (!parsedDate.isAfter(LocalDate.now())) {
                     score += 5;
                 }
             } catch (DateTimeParseException ex) {
-                // Invalid dates earn no date points.
+                // Invalid date earns no points.
             }
         }
 
-        if (!isBlank(time)) {
-            String value = time.trim();
-
-            // Accept examples such as 10:30 AM, 14:30, or 10 AM.
-            boolean validTime = value.matches(
-                    "(?i)(\\d{1,2}:\\d{2}\\s*(AM|PM)?"
-                    + "|\\d{1,2}\\s*(AM|PM))"
-            );
-
-            if (validTime) {
-                score += 5;
-            } else if (value.length() >= 3) {
-                score += 2;
-            }
+        if (!isBlank(time) && isValidTime(time.trim())) {
+            score += 5;
         }
 
         return score;
+    }
+
+    private boolean isValidTime(String value) {
+
+        DateTimeFormatter[] formats = {
+            DateTimeFormatter.ofPattern("H:mm", Locale.ROOT),
+            DateTimeFormatter.ofPattern("HH:mm", Locale.ROOT),
+            DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH),
+            DateTimeFormatter.ofPattern("hh:mm a", Locale.ENGLISH),
+            DateTimeFormatter.ofPattern("h a", Locale.ENGLISH),
+            DateTimeFormatter.ofPattern("hh a", Locale.ENGLISH)
+        };
+
+        for (DateTimeFormatter format : formats) {
+            try {
+                LocalTime.parse(
+                        value.toUpperCase(Locale.ROOT), format);
+                return true;
+            } catch (DateTimeParseException ex) {
+                // Try the next accepted format.
+            }
+        }
+
+        return false;
     }
 
     private int scoreCategory(
@@ -197,17 +240,16 @@ public class InitialTrustScoreCalculator {
             return 0;
         }
 
-        String cat = category.trim().toLowerCase(Locale.ROOT);
+        String cat = normalize(category);
 
         if (cat.equals("other") || cat.equals("others")) {
-            // "Other" is a valid category, but offers less specificity.
             return 5;
         }
 
-        String text = (
+        String text = normalize(
                 (itemName == null ? "" : itemName) + " "
                 + (description == null ? "" : description)
-        ).toLowerCase(Locale.ROOT);
+        );
 
         boolean matches;
 
@@ -225,7 +267,8 @@ public class InitialTrustScoreCalculator {
                 break;
 
             case "books":
-            case "books & stationery":
+            case "books stationery":
+            case "books and stationery":
                 matches = containsAny(text,
                         "book", "notebook", "pen", "pencil",
                         "stationery", "textbook");
@@ -260,7 +303,6 @@ public class InitialTrustScoreCalculator {
                 break;
 
             default:
-                // Avoid assuming unfamiliar categories are invalid.
                 return 5;
         }
 
@@ -268,12 +310,41 @@ public class InitialTrustScoreCalculator {
     }
 
     private boolean containsAny(String text, String... keywords) {
+
+        Set<String> words = new HashSet<>(
+                Arrays.asList(text.split("\\s+")));
+
         for (String keyword : keywords) {
-            if (text.contains(keyword)) {
+            String normalized = normalize(keyword);
+
+            if (normalized.contains(" ")) {
+                if ((" " + text + " ").contains(
+                        " " + normalized + " ")) {
+                    return true;
+                }
+            } else if (words.contains(normalized)) {
                 return true;
             }
         }
+
         return false;
+    }
+
+    private int scale(int rawScore, int oldMaximum, int newMaximum) {
+        return (int) Math.round(
+                rawScore * (double) newMaximum / oldMaximum);
+    }
+
+    private int clamp(int score) {
+        return Math.max(0, Math.min(score, 100));
+    }
+
+    private String normalize(String value) {
+        return value == null
+                ? ""
+                : value.toLowerCase(Locale.ROOT)
+                        .replaceAll("[^a-z0-9]+", " ")
+                        .trim();
     }
 
     private int countWords(String text) {

@@ -89,3 +89,89 @@ USE back2u;
         REFERENCES item_matches(match_id)
 );*/
 
+
+/*select * from accountdetails;
+select * from items;
+select * from item_matches;
+select * from admin_reports;
+select * from handover;*/
+
+/*ALTER TABLE items
+ADD COLUMN trust_score INT NOT NULL DEFAULT 0,
+ADD COLUMN ad_review_status VARCHAR(20)
+    NOT NULL DEFAULT 'PENDING_REVIEW';*/
+    
+
+/*CREATE TABLE advertisement_ratings (
+    rating_id INT AUTO_INCREMENT PRIMARY KEY,
+    item_id INT NOT NULL,
+    user_id INT NOT NULL,
+    rating INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT chk_ad_rating
+        CHECK (rating BETWEEN 1 AND 5),
+
+    CONSTRAINT uq_item_user_rating
+        UNIQUE (item_id, user_id),
+
+    CONSTRAINT fk_rating_item
+        FOREIGN KEY (item_id) REFERENCES items(item_id)
+        ON DELETE CASCADE
+);*/
+
+/*CREATE TABLE advertisement_reports (
+    report_id INT AUTO_INCREMENT PRIMARY KEY,
+    item_id INT NOT NULL,
+    reporter_user_id INT NOT NULL,
+    reason VARCHAR(100) NOT NULL,
+    details VARCHAR(1000),
+    report_status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_ad_report_item
+        FOREIGN KEY (item_id) REFERENCES items(item_id)
+        ON DELETE CASCADE
+);*/
+
+select * from advertisement_ratings;
+select * from advertisement_reports;
+select * from handover;
+select * from admin_reports;
+select * from item_matches;
+select * from items;
+select * from accountdetails;
+
+USE back2u;
+
+/*ALTER TABLE items
+ADD COLUMN initial_trust_score INT NOT NULL DEFAULT 0;*/
+
+/*DESCRIBE items;
+
+UPDATE items
+SET initial_trust_score = trust_score
+WHERE item_id > 0;
+
+ALTER TABLE advertisement_reports
+ADD CONSTRAINT fk_ad_reporter_user
+FOREIGN KEY (reporter_user_id)
+REFERENCES accountdetails(user_id);
+
+SELECT
+    item_id,
+    item_name,
+    initial_trust_score,
+    trust_score,
+    ad_review_status
+FROM items;*/
+
+SELECT item_id, user_id, report_type, item_name,
+       status, ad_review_status
+FROM items
+ORDER BY item_id DESC;
+
+SELECT match_id, lost_item_id, found_item_id,
+       match_score, match_status
+FROM item_matches
+ORDER BY match_id DESC;
