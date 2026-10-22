@@ -1,258 +1,253 @@
 
 package back2u;
+
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
-import java.sql.PreparedStatement;
+import java.sql.*;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 
+public class ReportFounditem extends JFrame {
 
-public class ReportFounditem extends JFrame implements ActionListener{
-    JComboBox<String>category;
-    JTextField Itemtext, DateText, TimeText, Locationtext;
-    JTextArea Descriptiontext, Uniquetext;
-    JButton Cancel, Submit;
     private final int userId;
-    
-    ReportFounditem(int userId){
-        this.userId=userId;
-        
-        setTitle("Report Found Item");
-        setSize(900,820);
-        setLocation(300,0);
-        setLayout(null);
-        JLabel heading=new JLabel("Report Found Item");
-        heading.setFont(new Font("Arial",Font.BOLD,26));
-        heading.setHorizontalAlignment(SwingConstants.CENTER);
-        heading.setBounds(40,20,440,40);
-        add(heading);
-        
-        JLabel subheading=new JLabel("Fill in the details below to report the item you found. ");
-        subheading.setBounds(40,60,550,25);
-        add(subheading);
-        
-        JLabel section1 =new JLabel("Item information");
-        section1.setFont(new Font("raleway",Font.BOLD,20));
-        section1.setBounds(40,140,250,30);
-        add(section1);
-        
-        JLabel categoryLabel = new JLabel("Item Category");
-        categoryLabel.setFont(new Font("raleway",Font.BOLD,16));
-        categoryLabel.setBounds(40, 200, 110, 25);
-        add(categoryLabel);
-        
-            category=new JComboBox<>(new String[]{
-            "Select category","electronics","Bags","Books","Clothing","Accessories","Others"});
-            category.setBounds(150,200,280,30);
-            add(category);
-            
-            JLabel ItemName=new JLabel("Item name:");
-            ItemName.setFont(new Font("raleway",Font.BOLD,16));
-            ItemName.setBounds(40,270,100,30);
-            add(ItemName);
-            
-            Itemtext=new JTextField();
-            Itemtext.setBounds(150,270,280,30);
-            add(Itemtext);
-            
-            JLabel Description=new JLabel("Description:");
-            Description.setFont(new Font("raleway",Font.BOLD,16));
-            Description.setBounds(40,320,100,30);
-            add(Description);
-            
-            Descriptiontext=new JTextArea();
-            Descriptiontext.setLineWrap(true);
-            Descriptiontext.setWrapStyleWord(true);
-            
-            JScrollPane descScroll=new JScrollPane(Descriptiontext);
-            descScroll.setBounds(150,320,280,70);
-            add(descScroll);
-            
-            JLabel Section2=new JLabel("Found Details");
-            Section2.setFont(new Font("raleway",Font.BOLD,20));
-            Section2.setBounds(40,410,300,30);
-            add(Section2);
-            
-            JLabel Datefound=new JLabel("Date found:");
-            Datefound.setFont(new Font("raleway",Font.BOLD,16));
-            Datefound.setBounds(40,450,300,30);
-            add(Datefound);
-            
-            DateText=new JTextField();
-            DateText.setToolTipText("Enter the date as yyyy-mm-dd");
-            DateText.setBounds(150,450,300,30);
-            add(DateText);
-            
-            JLabel Time=new JLabel("Time:");
-            Time.setFont(new Font("raleway",Font.BOLD,16));
-            Time.setBounds(40,490,300,30);
-            add(Time);
-            
-             TimeText=new JTextField();
-             TimeText.setBounds(150,490,300,30);
-             add(TimeText);
-             
-             JLabel Location=new JLabel("Found Location:");
-             Location.setFont(new Font("raleway",Font.BOLD,16));
-             Location.setBounds(40,540,300,30);
-             add(Location);
-             
-             Locationtext=new JTextField();
-             Locationtext.setBounds(170,540,300,30);
-             add(Locationtext);
-             
-             JLabel Additional=new JLabel("Additional information");
-             Additional.setFont(new Font("raleway",Font.BOLD,20));
-             Additional.setBounds(40,610,300,30);
-             add(Additional);
-             
-             JLabel Unique=new JLabel("<html>Additional details <br>like how it was kept:</html>"
-                     );
-             Unique.setFont(new Font("raleway",Font.BOLD,16));
-             Unique.setBounds(40,650,165,40);
-             add(Unique);
-             
-             Uniquetext=new JTextArea();
-             Uniquetext.setLineWrap(true);
-             Uniquetext.setWrapStyleWord(true);
-             
-             JScrollPane UniqueScroll=new JScrollPane(Uniquetext);
-            UniqueScroll.setBounds(210,650,250,70);
-            add(UniqueScroll);
-             
-             
-             Cancel=new JButton("Cancel");
-             Cancel.setBounds(210,730,110,35);
-             Cancel.addActionListener(this);
-             add(Cancel);
-             
-             Submit=new JButton("Submit");
-             Submit.setBounds(340,730,120,35);
-             Submit.addActionListener(this);
-             add(Submit);
-                     
-  
-            
- setVisible(true);
+
+    private JTextField itemName, dateFound, timeFound, location;
+    private JComboBox<String> category;
+    private JTextArea description;
+    private JButton submit, cancel;
+
+    public ReportFounditem(int userId) {
+        this.userId = userId;
+
+        setTitle("Back2U - Report Found Item");
+        setSize(600, 650);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        buildForm();
+        setVisible(true);
     }
-    public void actionPerformed(ActionEvent e){
-        if(e.getSource()==Cancel){
-            int choice=JOptionPane.showConfirmDialog(
-            this,"Do you want to clear the form and close it?",
-            "Confirm cancel",
-            JOptionPane.YES_NO_OPTION);
-            if(choice==JOptionPane.YES_OPTION){
-            Itemtext.setText("");
-            Descriptiontext.setText("");
-            DateText.setText("");
-            TimeText.setText("");
-            Locationtext.setText("");
-            Uniquetext.setText("");
-            category.setSelectedIndex(0);
-            JOptionPane.showMessageDialog(this,"Form Cleared Successfully");
-            dispose();
-            }
+
+    private void buildForm() {
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBorder(
+                BorderFactory.createEmptyBorder(15, 20, 15, 20));
+
+        JLabel heading = new JLabel(
+                "Report a Found Item", SwingConstants.CENTER);
+        heading.setFont(new Font("Arial", Font.BOLD, 24));
+        mainPanel.add(heading, BorderLayout.NORTH);
+
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(6, 6, 6, 6);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.WEST;
+
+        itemName = new JTextField(20);
+
+        category = new JComboBox<>(new String[]{
+            "Electronics", "Documents", "Wallet/Purse",
+            "Keys", "Clothing", "Bags", "Jewellery",
+            "Books", "Accessories", "Other"
+        });
+
+        description = new JTextArea(3, 20);
+        description.setLineWrap(true);
+        description.setWrapStyleWord(true);
+
+        dateFound = new JTextField(LocalDate.now().toString(), 20);
+        timeFound = new JTextField(
+                LocalTime.now().withSecond(0).withNano(0).toString(), 20);
+        location = new JTextField(20);
+
+        int row = 0;
+        addField(formPanel, gbc, row++, "Item name:", itemName);
+        addField(formPanel, gbc, row++, "Category:", category);
+        addField(formPanel, gbc, row++, "Description:",
+                new JScrollPane(description));
+        addField(formPanel, gbc, row++, "Date found (YYYY-MM-DD):",
+                dateFound);
+        addField(formPanel, gbc, row++, "Time found (HH:MM):",
+                timeFound);
+        addField(formPanel, gbc, row++, "Location:", location);
+
+        JLabel hint = new JLabel(
+                "Use 24-hour time, for example 14:30.");
+        hint.setForeground(Color.GRAY);
+        gbc.gridx = 1;
+        gbc.gridy = row;
+        formPanel.add(hint, gbc);
+
+        mainPanel.add(new JScrollPane(formPanel), BorderLayout.CENTER);
+
+        submit = new JButton("Submit Found Report");
+        cancel = new JButton("Cancel");
+
+        JPanel buttons = new JPanel();
+        buttons.add(submit);
+        buttons.add(cancel);
+        mainPanel.add(buttons, BorderLayout.SOUTH);
+
+        submit.addActionListener(e -> saveFoundItem());
+        cancel.addActionListener(e -> dispose());
+
+        setContentPane(mainPanel);
+    }
+
+    private void addField(
+            JPanel panel, GridBagConstraints gbc,
+            int row, String label, Component field) {
+
+        gbc.gridy = row;
+        gbc.gridx = 0;
+        gbc.weightx = 0;
+        panel.add(new JLabel(label), gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 1;
+        panel.add(field, gbc);
+    }
+
+    private void saveFoundItem() {
+        String name = itemName.getText().trim();
+        String selectedCategory = (String) category.getSelectedItem();
+        String itemDescription = description.getText().trim();
+        String foundDate = dateFound.getText().trim();
+        String time = timeFound.getText().trim();
+        String itemLocation = location.getText().trim();
+
+        if (name.isEmpty() || itemDescription.isEmpty()
+                || foundDate.isEmpty() || time.isEmpty()
+                || itemLocation.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                    this, "Please complete all fields.",
+                    "Missing Information", JOptionPane.WARNING_MESSAGE);
+            return;
         }
-       else if (e.getSource() == Submit) {
 
-            // Validate required fields
-            if (category.getSelectedIndex() == 0
-                    || Itemtext.getText().trim().isEmpty()
-                    || Descriptiontext.getText().trim().isEmpty()
-                    || DateText.getText().trim().isEmpty()
-                    || TimeText.getText().trim().isEmpty()
-                    || Locationtext.getText().trim().isEmpty()) {
+        java.sql.Date sqlDate;
 
-                JOptionPane.showMessageDialog(
-                        this, "Please fill in required fields");
+        try {
+            sqlDate = java.sql.Date.valueOf(LocalDate.parse(foundDate));
+            LocalTime.parse(time);
+        } catch (DateTimeParseException ex) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Enter a valid date (YYYY-MM-DD) and time (HH:MM).",
+                    "Invalid Date or Time", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        if (selectedCategory == null) {
+            JOptionPane.showMessageDialog(this, "Select a category.");
+            return;
+        }
+
+        final int trustScore;
+
+        try {
+            InitialTrustScoreCalculator calculator =
+                    new InitialTrustScoreCalculator();
+
+            // Found-item reports do not require unique identifying details.
+            // An empty string is supplied to the calculator.
+            trustScore = Math.max(0, Math.min(100,
+                    calculator.calculateScore(
+                            name, selectedCategory, itemDescription,
+                            foundDate, time, itemLocation, "")));
+
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(
+                    this, "Could not calculate trust score: "
+                            + ex.getMessage(),
+                    "Scoring Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        String reviewStatus =
+                trustScore < 50 ? "PENDING_REVIEW" : "APPROVED";
+
+        String sql =
+                "INSERT INTO items " +
+                "(user_id, report_type, item_name, category, " +
+                "description, date_occurred, time_occurred, location, " +
+                "status, unique_details, initial_trust_score, " +
+                "trust_score, ad_review_status) " +
+                "VALUES (?, 'FOUND', ?, ?, ?, ?, ?, ?, 'OPEN', NULL, ?, ?, ?)";
+
+        Conn conn = null;
+
+        try {
+            conn = new Conn();
+
+            if (conn.c == null) {
+                throw new SQLException("Database connection unavailable.");
             }
 
-            else {
+            try (PreparedStatement ps = conn.c.prepareStatement(sql)) {
+                ps.setInt(1, userId);
+                ps.setString(2, name);
+                ps.setString(3, selectedCategory);
+                ps.setString(4, itemDescription);
+                ps.setDate(5, sqlDate);
+                ps.setString(6, time);
+                ps.setString(7, itemLocation);
+                ps.setInt(8, trustScore);
+                ps.setInt(9, trustScore);
+                ps.setString(10, reviewStatus);
 
-                try {
-                    // Get values from the form
-                    String itemName = Itemtext.getText().trim();
-                    String itemCategory =
-                            category.getSelectedItem().toString();
-                    String description =
-                            Descriptiontext.getText().trim();
-                    String time = TimeText.getText().trim();
-                    String location = Locationtext.getText().trim();
-                    String uniqueDetails = Uniquetext.getText().trim();
+                int rowsInserted = ps.executeUpdate();
 
-                    // Convert yyyy-MM-dd text into a date
-                    DateTimeFormatter formatter =
-                            DateTimeFormatter.ofPattern("yyyy-MM-dd");
-
-                    LocalDate foundDate =
-                            LocalDate.parse(
-                                    DateText.getText().trim(), formatter);
-
-                    // Connect to the database
-                    Conn con = new Conn();
-
-                    if (con.c == null) {
-                        throw new Exception(
-                                "Database connection failed. Check Conn.java.");
-                    }
-
-                    // Insert the report into the existing items table
-                    String query =
-        "INSERT INTO items " +
-        "(user_id, report_type, item_name, category, description, " +
-        "date_occurred, time_occurred, location, status, unique_details) " +
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-                    try (PreparedStatement ps = con.c.prepareStatement(query)) {
-
-                    ps.setInt(1, userId);
-                    ps.setString(2, "FOUND");
-                    ps.setString(3, itemName);
-                     ps.setString(4, itemCategory);
-                    ps.setString(5, description);
-                    ps.setDate(6, java.sql.Date.valueOf(foundDate));
-                    ps.setString(7, time);
-                    ps.setString(8, location);
-                    ps.setString(9, "OPEN");
-                    ps.setString(10, uniqueDetails);
-
-                    int rows = ps.executeUpdate();
-
-                if (rows > 0) {JOptionPane.showMessageDialog(this,"Found item reported successfully!");
-
-        Itemtext.setText("");
-        Descriptiontext.setText("");
-        DateText.setText("");
-        TimeText.setText("");
-        Locationtext.setText("");
-        Uniquetext.setText("");
-        category.setSelectedIndex(0);
-    }
-}
-
-                    con.c.close();
-
-                } catch (java.time.format.DateTimeParseException ex) {
-
-                    JOptionPane.showMessageDialog(
-                            this,
-                            "Enter a valid date in yyyy-MM-dd format.\n"
-                            + "Example: 2026-10-20");
-
-                } catch (Exception ex) {
-
-                    JOptionPane.showMessageDialog(
-                            this,
-                            "Could not save report: " + ex.getMessage());
-
-                    ex.printStackTrace();
+                if (rowsInserted == 0) {
+                    throw new SQLException("The report could not be saved.");
                 }
             }
+
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(
+                    this, "Database error:\n" + ex.getMessage(),
+                    "Database Error", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+            return;
+
+        } finally {
+            closeConnection(conn);
         }
+
+        JOptionPane.showMessageDialog(
+                this,
+                "Found-item report submitted successfully.\n"
+                        + "Initial trust score: " + trustScore + "/100\n"
+                        + (trustScore < 50
+                            ? "Status: Pending administrator review."
+                            : "Status: Approved for matching."),
+                "Report Submitted",
+                JOptionPane.INFORMATION_MESSAGE);
+
+        dispose();
     }
 
-     public static void main(String[] args) {
-    SwingUtilities.invokeLater(() -> new ReportFounditem(1));
-}
+    private void closeConnection(Conn conn) {
+        if (conn == null) {
+            return;
+        }
+
+        try {
+            if (conn.s != null) {
+                conn.s.close();
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+
+        try {
+            if (conn.c != null) {
+                conn.c.close();
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
 }
