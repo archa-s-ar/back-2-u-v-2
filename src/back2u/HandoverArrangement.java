@@ -6,6 +6,7 @@ import java.awt.*;
 import java.security.SecureRandom;
 import java.sql.*;
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 public class HandoverArrangement extends JFrame {
 
@@ -87,15 +88,28 @@ public class HandoverArrangement extends JFrame {
 
     private void saveArrangement() {
         String location = locationField.getText().trim();
-        String dateText = dateField.getText().trim();
-        String time = timeField.getText().trim();
-        String instructions = instructionsArea.getText().trim();
+String dateText = dateField.getText().trim();
+String time = timeField.getText().trim();
+String instructions = instructionsArea.getText().trim();
 
-        if (location.isEmpty() || dateText.isEmpty() || time.isEmpty()) {
-            JOptionPane.showMessageDialog(
-                this, "Please enter the location, date and time.");
-            return;
-        }
+// Step 1: Check required fields
+if (location.isEmpty() || dateText.isEmpty() || time.isEmpty()) {
+    JOptionPane.showMessageDialog(
+        this, "Please enter the location, date and time.");
+    return;
+}
+
+// Step 2: Validate time
+try {
+    LocalTime.parse(time);
+} catch (Exception ex) {
+    JOptionPane.showMessageDialog(
+        this,
+        "Enter a valid time in HH:MM format, such as 14:30."
+    );
+    return;
+}
+        
 
         LocalDate meetingDate;
 
@@ -129,7 +143,14 @@ public class HandoverArrangement extends JFrame {
             "AND im.match_status = 'VERIFICATION' " +
             "AND im.owner_response = 'CONFIRMED' " +
             "AND im.finder_response = 'CONFIRMED' " +
-            "AND NOT EXISTS (" +
+"AND lost.ad_review_status = 'APPROVED' " +
+"AND EXISTS (" +
+"    SELECT 1 FROM items found " +
+"    WHERE found.item_id = im.found_item_id " +
+"    AND found.report_type = 'FOUND' " +
+"    AND found.ad_review_status = 'APPROVED'" +
+") " +
+"AND NOT EXISTS (" +
             "SELECT 1 FROM handover h " +
             "WHERE h.match_id = im.match_id)";
 

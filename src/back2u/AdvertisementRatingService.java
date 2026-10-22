@@ -6,14 +6,23 @@ import java.sql.*;
 public class AdvertisementRatingService {
 
     private static final int REVIEW_THRESHOLD = 50;
+    private static final int MAX_RATING = 5;
 
+    /**
+     * Submit a rating or update the user's existing rating.
+     * Only approved advertisements can be rated.
+     */
     public static void submitRating(
             int itemId, int userId, int rating) throws SQLException {
 
-        if (rating < 1 || rating > 5) {
+        if (itemId <= 0 || userId <= 0) {
             throw new IllegalArgumentException(
-                    "Rating must be between 1 and 5."
-            );
+                    "Invalid advertisement or user ID.");
+        }
+
+        if (rating < 1 || rating > MAX_RATING) {
+            throw new IllegalArgumentException(
+                    "Rating must be between 1 and 5.");
         }
 
         Conn db = new Conn();
@@ -27,12 +36,12 @@ public class AdvertisementRatingService {
         try {
             con.setAutoCommit(false);
 
-            // Only approved listings can be rated.
+            int ownerId;
+            String reviewStatus;
+
             String checkSql =
-                    "SELECT item_id FROM items "
-                    + "WHERE item_id = ? "
-                    + "AND ad_review_status = 'APPROVED' "
-                    + "FOR UPDATE";
+                    "SELECT user_id, ad_review_status "
+                    + "FROM items WHERE item_id = ? FOR UPDATE";
 
             try (PreparedStatement ps =
                          con.prepareStatement(checkSql)) {
@@ -42,37 +51,33 @@ public class AdvertisementRatingService {
                 try (ResultSet rs = ps.executeQuery()) {
                     if (!rs.next()) {
                         throw new SQLException(
-                                "This listing is not available for rating."
-                        );
+                                "Advertisement not found.");
                     }
+
+                    ownerId = rs.getInt("user_id");
+                    reviewStatus = rs.getString("ad_review_status");
                 }
             }
 
-            // Do not allow users to rate their own listings.
-            String ownerSql =
-                    "SELECT user_id FROM items WHERE item_id = ?";
-
-            try (PreparedStatement ps =
-                         con.prepareStatement(ownerSql)) {
-
-                ps.setInt(1, itemId);
-
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next() && rs.getInt("user_id") == userId) {
-                        throw new SQLException(
-                                "You cannot rate your own listing."
-                        );
-                    }
-                }
+            if (ownerId == userId) {
+                throw new SQLException(
+                        "You cannot rate your own advertisement.");
             }
 
-            // Unique(item_id, user_id) prevents duplicate ratings.
-            String insertSql =
+            if (!"APPROVED".equalsIgnoreCase(reviewStatus)) {
+                throw new SQLException(
+                        "Only approved advertisements can be rated.");
+            }
+
+            String ratingSql =
                     "INSERT INTO advertisement_ratings "
-                    + "(item_id, user_id, rating) VALUES (?, ?, ?)";
+                    + "(item_id, user_id, rating) VALUES (?, ?, ?) "
+                    + "ON DUPLICATE KEY UPDATE "
+                    + "rating = VALUES(rating), "
+                    + "created_at = CURRENT_TIMESTAMP";
 
             try (PreparedStatement ps =
-                         con.prepareStatement(insertSql)) {
+                         con.prepareStatement(ratingSql)) {
 
                 ps.setInt(1, itemId);
                 ps.setInt(2, userId);
@@ -103,7 +108,9 @@ public class AdvertisementRatingService {
             }
 
             try {
-                if (db.s != null) db.s.close();
+                if (db.s != null) {
+                    db.s.close();
+                }
             } catch (SQLException ex) {
                 ex.printStackTrace();
             }
@@ -116,6 +123,13 @@ public class AdvertisementRatingService {
         }
     }
 
+    /**
+     * Recalculate trust score using:
+     * 70% initial listing score + 30% average rating score.
+     *
+     * Pending advertisements remain pending.
+     * Rejected advertisements remain rejected.
+     */
     private static void recalculateTrustScore(
             int itemId, Connection con) throws SQLException {
 
@@ -147,36 +161,35 @@ public class AdvertisementRatingService {
                 initialScore = rs.getInt("initial_trust_score");
                 reviewStatus = rs.getString("ad_review_status");
 
-                double average = rs.getDouble("average_rating");
+                averageRating = rs.getDouble("average_rating");
 
                 if (rs.wasNull()) {
-                    // No ratings: retain the initial score.
+                    // No ratings: preserve the initial score.
                     updateScoreOnly(itemId, initialScore, con);
                     return;
                 }
-
-                averageRating = average;
             }
         }
 
-        double ratingScore = (averageRating / 5.0) * 100.0;
+        double ratingScore =
+                (averageRating / MAX_RATING) * 100.0;
 
         int newScore = (int) Math.round(
-                0.70 * initialScore + 0.30 * ratingScore
-        );
+                0.70 * initialScore + 0.30 * ratingScore);
 
         newScore = Math.max(0, Math.min(100, newScore));
 
         String newStatus = reviewStatus;
 
-        // A previously approved listing below the threshold
-        // must return to admin review.
+        // Only an already-approved listing can be moved
+        // back to review by a falling score.
         if (newScore < REVIEW_THRESHOLD
-                && "APPROVED".equals(reviewStatus)) {
+                && "APPROVED".equalsIgnoreCase(reviewStatus)) {
 
             newStatus = "PENDING_REVIEW";
         }
 
+        // This condition protects rejected listings.
         String updateSql =
                 "UPDATE items SET trust_score = ?, "
                 + "ad_review_status = ? "
@@ -209,8 +222,16 @@ public class AdvertisementRatingService {
         }
     }
 
+    /**
+     * Returns the average rating, or 0.0 if no ratings exist.
+     */
     public static double getAverageRating(int itemId)
             throws SQLException {
+
+        if (itemId <= 0) {
+            throw new IllegalArgumentException(
+                    "Invalid advertisement ID.");
+        }
 
         Conn db = new Conn();
 
@@ -229,18 +250,24 @@ public class AdvertisementRatingService {
                 if (rs.next()) {
                     double average = rs.getDouble("avg_rating");
 
-                    if (rs.wasNull()) {
-                        return 0.0;
-                    }
-
-                    return average;
+                    return rs.wasNull() ? 0.0 : average;
                 }
             }
 
         } finally {
+
             try {
-                if (db.s != null) db.s.close();
-                if (db.c != null) db.c.close();
+                if (db.s != null) {
+                    db.s.close();
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+
+            try {
+                if (db.c != null) {
+                    db.c.close();
+                }
             } catch (SQLException ex) {
                 ex.printStackTrace();
             }

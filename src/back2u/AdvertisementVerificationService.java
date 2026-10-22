@@ -14,12 +14,21 @@ public class AdvertisementVerificationService {
     public boolean submitRating(int itemId, int userId, int rating)
             throws SQLException {
 
+        if (itemId <= 0 || userId <= 0) {
+            throw new IllegalArgumentException(
+                    "Invalid advertisement or user ID.");
+        }
+
         if (rating < 1 || rating > MAX_RATING) {
             throw new IllegalArgumentException(
                     "Rating must be between 1 and 5.");
         }
 
-        String sql =
+        String checkSql =
+                "SELECT user_id, ad_review_status "
+                + "FROM items WHERE item_id = ?";
+
+        String ratingSql =
                 "INSERT INTO advertisement_ratings "
                 + "(item_id, user_id, rating) VALUES (?, ?, ?) "
                 + "ON DUPLICATE KEY UPDATE "
@@ -32,12 +41,41 @@ public class AdvertisementVerificationService {
             throw new SQLException("Database connection failed.");
         }
 
-        try (PreparedStatement ps = conn.c.prepareStatement(sql)) {
-            ps.setInt(1, itemId);
-            ps.setInt(2, userId);
-            ps.setInt(3, rating);
+        try {
+            try (PreparedStatement ps =
+                         conn.c.prepareStatement(checkSql)) {
 
-            return ps.executeUpdate() > 0;
+                ps.setInt(1, itemId);
+
+                try (ResultSet rs = ps.executeQuery()) {
+
+                    if (!rs.next()) {
+                        throw new SQLException(
+                                "Advertisement does not exist.");
+                    }
+
+                    if (rs.getInt("user_id") == userId) {
+                        throw new IllegalArgumentException(
+                                "You cannot rate your own advertisement.");
+                    }
+
+                    if (!"APPROVED".equalsIgnoreCase(
+                            rs.getString("ad_review_status"))) {
+                        throw new SQLException(
+                                "Only approved advertisements can be rated.");
+                    }
+                }
+            }
+
+            try (PreparedStatement ps =
+                         conn.c.prepareStatement(ratingSql)) {
+
+                ps.setInt(1, itemId);
+                ps.setInt(2, userId);
+                ps.setInt(3, rating);
+
+                return ps.executeUpdate() > 0;
+            }
 
         } finally {
             closeConnection(conn);
@@ -45,8 +83,8 @@ public class AdvertisementVerificationService {
     }
 
     /**
-     * Get the average user rating for an item.
-     * Returns -1 if nobody has rated it yet.
+     * Get the average user rating.
+     * Returns -1 if there are no ratings.
      */
     public double getAverageRating(int itemId) throws SQLException {
 
@@ -61,17 +99,15 @@ public class AdvertisementVerificationService {
         }
 
         try (PreparedStatement ps = conn.c.prepareStatement(sql)) {
+
             ps.setInt(1, itemId);
 
             try (ResultSet rs = ps.executeQuery()) {
+
                 if (rs.next()) {
                     double average = rs.getDouble("average_rating");
 
-                    if (rs.wasNull()) {
-                        return -1;
-                    }
-
-                    return average;
+                    return rs.wasNull() ? -1 : average;
                 }
 
                 return -1;
@@ -84,7 +120,7 @@ public class AdvertisementVerificationService {
 
     /**
      * Convert the average rating to a percentage.
-     * Returns -1 when the item has no ratings.
+     * Returns -1 when there are no ratings.
      */
     public int calculateRatingTrustScore(int itemId)
             throws SQLException {
@@ -95,17 +131,24 @@ public class AdvertisementVerificationService {
             return -1;
         }
 
-        return (int) Math.round((average / MAX_RATING) * 100);
+        return (int) Math.round(
+                (average / MAX_RATING) * 100.0);
     }
 
     /**
      * Report a suspicious advertisement.
+     * Reporting does not automatically prove fraud.
      */
     public boolean reportAdvertisement(
             int itemId,
             int reporterUserId,
             String reason,
             String details) throws SQLException {
+
+        if (itemId <= 0 || reporterUserId <= 0) {
+            throw new IllegalArgumentException(
+                    "Invalid advertisement or reporter ID.");
+        }
 
         if (reason == null || reason.trim().isEmpty()) {
             throw new IllegalArgumentException(
@@ -115,41 +158,7 @@ public class AdvertisementVerificationService {
         String sql =
                 "INSERT INTO advertisement_reports "
                 + "(item_id, reporter_user_id, reason, details) "
-                + "VALUES (?, ?, ?, ?)";
-
-        Conn conn = new Conn();
-
-        if (conn.c == null) {
-            throw new SQLException("Database connection failed.");
-        }
-
-        try (PreparedStatement ps = conn.c.prepareStatement(sql)) {
-            ps.setInt(1, itemId);
-            ps.setInt(2, reporterUserId);
-            ps.setString(3, reason.trim());
-
-            if (details == null || details.trim().isEmpty()) {
-                ps.setNull(4, Types.VARCHAR);
-            } else {
-                ps.setString(4, details.trim());
-            }
-
-            return ps.executeUpdate() > 0;
-
-        } finally {
-            closeConnection(conn);
-        }
-    }
-
-    /**
-     * Flag an advertisement for administrator review.
-     * This does not automatically prove that the ad is fraudulent.
-     */
-    public boolean flagAdvertisement(int itemId)
-            throws SQLException {
-
-        String sql =
-                "UPDATE items SET ad_review_status = 'PENDING_REVIEW' "
+                + "SELECT item_id, ?, ?, ? FROM items "
                 + "WHERE item_id = ?";
 
         Conn conn = new Conn();
@@ -159,6 +168,58 @@ public class AdvertisementVerificationService {
         }
 
         try (PreparedStatement ps = conn.c.prepareStatement(sql)) {
+
+            ps.setInt(1, reporterUserId);
+            ps.setString(2, reason.trim());
+
+            if (details == null || details.trim().isEmpty()) {
+                ps.setNull(3, Types.VARCHAR);
+            } else {
+                ps.setString(3, details.trim());
+            }
+
+            ps.setInt(4, itemId);
+
+            int rows = ps.executeUpdate();
+
+            if (rows == 0) {
+                throw new SQLException(
+                        "Advertisement does not exist.");
+            }
+
+            return true;
+
+        } finally {
+            closeConnection(conn);
+        }
+    }
+
+    /**
+     * Flag an advertisement for administrator review.
+     * Never overwrites a rejected advertisement's status.
+     */
+    public boolean flagAdvertisement(int itemId)
+            throws SQLException {
+
+        if (itemId <= 0) {
+            throw new IllegalArgumentException(
+                    "Invalid advertisement ID.");
+        }
+
+        String sql =
+                "UPDATE items "
+                + "SET ad_review_status = 'PENDING_REVIEW' "
+                + "WHERE item_id = ? "
+                + "AND ad_review_status <> 'REJECTED'";
+
+        Conn conn = new Conn();
+
+        if (conn.c == null) {
+            throw new SQLException("Database connection failed.");
+        }
+
+        try (PreparedStatement ps = conn.c.prepareStatement(sql)) {
+
             ps.setInt(1, itemId);
             return ps.executeUpdate() > 0;
 
@@ -168,6 +229,7 @@ public class AdvertisementVerificationService {
     }
 
     private void closeConnection(Conn conn) {
+
         try {
             if (conn.s != null) {
                 conn.s.close();
