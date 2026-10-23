@@ -38,13 +38,13 @@ public class RateAdvertisement extends JDialog {
         ratingPanel.add(new JLabel("Your rating:"));
 
         ratingBox = new JComboBox<>(
-                new Integer[]{1, 2, 3, 4, 5});
+                new Integer[]{1, 5});
         ratingBox.setSelectedItem(5);
         ratingPanel.add(ratingBox);
 
         center.add(ratingPanel);
 
-        statusLabel = new JLabel("1 = Poor, 5 = Excellent",
+        statusLabel = new JLabel("1 = Suspicious, 5 = Not Suspicious",
                 SwingConstants.CENTER);
         center.add(statusLabel);
 
